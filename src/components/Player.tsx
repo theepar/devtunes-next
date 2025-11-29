@@ -11,7 +11,7 @@ interface PlayerProps {
     isPlaying: boolean;
     currentTime: number;
     duration: number;
-    audioRef: React.RefObject<HTMLAudioElement>;
+    audioRef: React.RefObject<HTMLAudioElement | null>;
     togglePlay: () => void;
     onTimeUpdate: () => void;
     handleSongEnd: () => void;
