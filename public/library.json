@@ -1,0 +1,41 @@
+[
+  {
+    "id": 1764402716306,
+    "title": "𝙎𝙀𝙉𝙏𝙀 𝙈𝘼𝙄𝙎 - 𝙀𝙩𝙚𝙧𝙣𝙭𝙡𝙠𝙯 (𝙎𝙪𝙥𝙚𝙧 𝙎𝙡𝙤𝙬𝙚𝙙) 𝙭 𝙉𝙚𝙛𝙚𝙧",
+    "composer": "Lunar",
+    "image": "/images/1764402716306.webp",
+    "file": "/music/1764402716306.mp3",
+    "duration": 298,
+    "addedAt": "2025-11-29T07:52:19.794Z"
+  },
+  {
+    "id": 1764403384247,
+    "title": "Multo - Cup of Joe (Official Lyric Video)",
+    "composer": "Cup of Joe",
+    "image": "/images/1764403384247.webp",
+    "file": "/music/1764403384247.mp3",
+    "duration": 240,
+    "addedAt": "2025-11-29T08:03:32.727Z",
+    "source": "youtube-search"
+  },
+  {
+    "id": 1764403724941,
+    "title": "Sweet - Cigarettes After Sex",
+    "composer": "Cigarettes After Sex",
+    "image": "/images/1764403724941.webp",
+    "file": "/music/1764403724941.mp3",
+    "duration": 292,
+    "addedAt": "2025-11-29T08:09:14.100Z",
+    "source": "youtube-search"
+  },
+  {
+    "id": 1764403786430,
+    "title": "One Of The Girls x Good For You",
+    "composer": "Luke Muzzic",
+    "image": "/images/1764403786430.webp",
+    "file": "/music/1764403786430.mp3",
+    "duration": 245,
+    "addedAt": "2025-11-29T08:10:12.547Z",
+    "source": "youtube-url"
+  }
+]

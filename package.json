@@ -6,9 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "add-song": "node scripts/download-music.js"
   },
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.555.0",
@@ -17,7 +20,8 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "swiper": "^12.0.3",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "yt-dlp-wrap": "^2.3.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
