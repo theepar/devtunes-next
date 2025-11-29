@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-// Initialize token manager on server start
-import "@/lib/init-token-manager";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

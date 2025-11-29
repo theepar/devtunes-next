@@ -1,204 +1,364 @@
-'use client';
+"use client";
 
-import Link from "next/link";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { Play } from "lucide-react";
-import { motion } from "framer-motion";
+import Link from "next/link";
+import {
+  Play, Pause, SkipBack, SkipForward,
+  Home, Disc, LayoutDashboard, Volume2,
+  Search, Heart, Shuffle, Repeat, Music
+} from "lucide-react";
 
-// Komponen Card Reusable dengan Framer Motion
-const PlaylistCard = ({ item, index }: { item: any; index: number }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay: index * 0.1 }}
-    whileHover={{ y: -8 }}
-  >
-    <Link
-      href={`/playlist/${item.id}`}
-      className="group relative bg-[#181818] p-4 rounded-lg hover:bg-[#282828] transition duration-300 ease-in-out block"
-    >
-      <div className="relative aspect-square w-full mb-4 shadow-lg overflow-hidden rounded-md">
-        <Image
-          src={item.image}
-          alt={item.title}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
-        />
-        {/* Play Button on Hover */}
-        <div className="absolute bottom-2 right-2 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 shadow-xl z-20">
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="bg-purple-600 rounded-full p-3 shadow-lg hover:scale-105 hover:bg-purple-500"
-          >
-            <Play fill="black" size={20} className="text-black ml-0.5" />
-          </motion.div>
-        </div>
-      </div>
-      <h3 className="font-bold text-white truncate mb-1">{item.title}</h3>
-      <p className="text-sm text-gray-400 line-clamp-2">By {item.composer || "Unknown"}</p>
-    </Link>
-  </motion.div>
-);
+// --- Swiper Imports ---
+import { Swiper, SwiperSlide } from "swiper/react";
+import { EffectCoverflow, Mousewheel, Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/effect-coverflow";
 
-export default function Home() {
-  // Data Mockup
-  const featuredPlaylists = [
-    { id: 1, title: "Lo-Fi Beats", image: "/images/lofi.jpg", composer: "Chillhop" },
-    { id: 2, title: "Coding Mode", image: "/images/code.jpg", composer: "DevTunes" },
-    { id: 3, title: "Night Drive", image: "/images/drive.jpg", composer: "Synthwave" },
-    { id: 4, title: "Workout", image: "/images/gym.jpg", composer: "Fitness" },
-  ];
+// --- Mock Data ---
+const PLAYLISTS = [
+  { id: 1, title: "Coding Mode", image: "/images/code.jpg", desc: "Deep Focus" },
+  { id: 2, title: "Night Drive", image: "/images/drive.jpg", desc: "Chill Vibes" },
+  { id: 3, title: "Gym Motivation", image: "/images/gym.jpg", desc: "Power Up" },
+  { id: 4, title: "Lofi Study", image: "/images/lofi.jpg", desc: "Relaxing Beats" },
+];
+
+const MUSIC_LIST = [
+  { id: 1, title: "Beautiful Creatures", composer: "Nightcore", image: "/images/code.jpg", file: "/music/Nightcore - Beautiful Creatures.mp3", duration: 213 },
+  { id: 2, title: "Lost Control", composer: "Nightcore", image: "/images/gym.jpg", file: "/music/Nightcore - Lost Control.mp3", duration: 240 },
+  { id: 3, title: "Beautiful Creatures (Remix)", composer: "Nightcore", image: "/images/drive.jpg", file: "/music/Nightcore - Beautiful Creatures.mp3", duration: 185 },
+  { id: 4, title: "Lost Control (Vibe)", composer: "Nightcore", image: "/images/lofi.jpg", file: "/music/Nightcore - Lost Control.mp3", duration: 190 },
+  { id: 5, title: "Beautiful Creatures (Chill)", composer: "Nightcore", image: "/images/drive.jpg", file: "/music/Nightcore - Beautiful Creatures.mp3", duration: 205 },
+];
+
+// --- Utilities ---
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+};
+
+export default function DevTunesApp() {
+  // --- STATE MANAGEMENT ---
+  const [activeIndex, setActiveIndex] = useState(1);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(0.7);
+
+  // Refs
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const swiperRef = useRef<any>(null);
+
+  // --- LOGIC ---
+
+  // 1. Handle Slide Change (Update Song)
+  const handleSlideChange = (swiper: any) => {
+    setActiveIndex(swiper.activeIndex);
+    // Reset progress saat ganti lagu via slide
+    setIsPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  };
+
+  // 2. Handle Play/Pause Global
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  // 3. Handle Select specific song from Swiper
+  const handleSelectSong = (index: number) => {
+    if (index !== activeIndex) {
+      swiperRef.current?.swiper.slideTo(index);
+    } else {
+      togglePlay();
+    }
+  };
+
+  // 4. Update Time Progress
+  const onTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+      setDuration(audioRef.current.duration || 0);
+    }
+  };
+
+  // 5. Update Source when activeIndex changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.src = MUSIC_LIST[activeIndex].file;
+      audioRef.current.load();
+      // Auto play jika user sudah dalam mode play, opsional:
+      // if (isPlaying) audioRef.current.play();
+    }
+  }, [activeIndex]);
+
+  // 6. Handle Volume Change
+  const handleVolumeChange = (e: React.MouseEvent<HTMLDivElement>) => {
+    const newVolume = e.nativeEvent.offsetX / e.currentTarget.offsetWidth;
+    const clampedVolume = Math.max(0, Math.min(1, newVolume));
+    setVolume(clampedVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = clampedVolume;
+    }
+  };
+
+  // Sync volume on mount/change
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  const currentSong = MUSIC_LIST[activeIndex];
 
   return (
-    <div className="min-h-screen pb-32">
+    <div className="min-h-screen bg-[#121212] text-white font-sans selection:bg-[#C45EFF] selection:text-white flex flex-col">
 
+      {/* ================= NAVBAR ================= */}
+      <nav className="fixed top-0 w-full z-50 bg-[#121212]/80 backdrop-blur-md border-b border-white/5 transition-all duration-300">
+        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
 
-      <main className="max-w-7xl mx-auto px-8 pt-32">
-        <div className="space-y-10 py-6">
-          {/* Hero Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="bg-gradient-to-r from-purple-900/80 to-neutral-900 p-8 md:p-12 rounded-2xl flex flex-col md:flex-row items-center gap-8 border border-white/5"
-          >
-            <div className="space-y-4 flex-1">
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="text-4xl md:text-6xl font-bold leading-tight"
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#C45EFF] to-purple-800 rounded-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
+              <Music size={18} fill="white" />
+            </div>
+            <span className="text-xl font-bold tracking-tight">DevTunes</span>
+          </Link>
+
+          {/* Center Links */}
+          <div className="hidden md:flex items-center bg-white/5 rounded-full px-2 py-1 border border-white/5">
+            {[
+              { name: 'Home', icon: Home, href: '/' },
+              { name: 'Playlist', icon: Disc, href: '/playlist' },
+              { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' }
+            ].map((link, idx) => (
+              <Link
+                key={idx}
+                href={link.href}
+                className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all duration-300
+                  ${link.name === 'Home'
+                    ? 'bg-[#C45EFF] text-white shadow-[0_0_15px_rgba(196,94,255,0.4)]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
               >
+                <link.icon size={16} />
+                {link.name}
+              </Link>
+            ))}
+          </div>
+
+          {/* Right Action */}
+          <div className="flex items-center gap-4">
+            <div className="hidden lg:flex items-center bg-neutral-800 rounded-full px-4 py-2 border border-white/5 focus-within:border-[#C45EFF]/50 transition-colors">
+              <Search size={16} className="text-gray-400" />
+              <input type="text" placeholder="Search..." className="bg-transparent border-none outline-none text-sm ml-2 w-32 text-white placeholder-gray-500" />
+            </div>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 p-[2px]">
+              <div className="w-full h-full rounded-full bg-[#121212] flex items-center justify-center">
+                <span className="font-bold text-xs">US</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* ================= MAIN CONTENT ================= */}
+      <main className="flex-1 container mx-auto px-4 pt-28 pb-32">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 h-full items-center">
+
+          {/* --- LEFT: Hero Text & Grid --- */}
+          <div className="flex flex-col justify-center space-y-8">
+            <div className="space-y-4 animate-in fade-in slide-in-from-left duration-700">
+              <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
                 Welcome to the <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C45EFF] to-pink-500">
                   Sound of Harmony
                 </span>
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="text-gray-300 max-w-lg text-lg"
-              >
-                Experience the magic of music like never before. Dive into a world where melodies paint emotions.
-              </motion.p>
-
-              {/* CTA Buttons */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.6 }}
-                className="flex items-center gap-4 pt-4"
-              >
-                <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 20px 40px rgba(139, 92, 246, 0.4)' }}
-                  whileTap={{ scale: 0.95 }}
-                  className="btn-primary text-lg px-8 py-4"
-                >
-                  Start Listening
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-4 rounded-xl border-2 border-purple-500/30 text-white font-semibold hover:bg-purple-500/10 transition-all duration-300"
-                >
-                  Browse Library
-                </motion.button>
-              </motion.div>
+              </h1>
+              <p className="text-gray-400 text-lg max-w-lg">
+                Dive into a world where melodies paint emotions. Curated playlists for every coding session.
+              </p>
             </div>
 
-            {/* Hero Image */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="relative w-full md:w-1/2 aspect-square rounded-2xl overflow-hidden glass-card p-2"
-            >
-              <div className="relative w-full h-full rounded-xl overflow-hidden">
-                <Image
-                  src="https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=800&h=800&fit=crop"
-                  alt="Featured Music"
-                  fill
-                  className="object-cover"
-                  priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-purple-900/60 via-transparent to-transparent" />
-              </div>
-
-              {/* Decorative Elements */}
-              <motion.div
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3]
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="absolute -top-10 -right-10 w-40 h-40 bg-purple-500 rounded-full filter blur-3xl opacity-30 pointer-events-none"
-              />
-              <motion.div
-                animate={{
-                  scale: [1, 1.3, 1],
-                  opacity: [0.2, 0.5, 0.2]
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 1
-                }}
-                className="absolute -bottom-10 -left-10 w-40 h-40 bg-pink-500 rounded-full filter blur-3xl opacity-20 pointer-events-none"
-              />
-            </motion.div>
-          </motion.div>
-
-          {/* Section: Featured Playlists */}
-          <section>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
-              className="flex justify-between items-end mb-6"
-            >
-              <h2 className="text-2xl font-bold text-white">Featured Playlists</h2>
-              <Link
-                href="/playlist"
-                className="text-sm text-gray-400 hover:text-white uppercase font-bold tracking-wider transition-colors"
-              >
-                See All
-              </Link>
-            </motion.div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {featuredPlaylists.map((item, index) => (
-                <PlaylistCard key={item.id} item={item} index={index} />
+            {/* Mini Playlist Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {PLAYLISTS.map((item) => (
+                <div key={item.id} className="group relative bg-[#1A1A1A] p-3 rounded-xl hover:bg-[#252525] transition-all duration-300 border border-white/5 hover:border-[#C45EFF]/30 cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
+                      <Image src={item.image} alt={item.title} fill className="object-cover" />
+                    </div>
+                    <div className="overflow-hidden">
+                      <h4 className="font-bold text-sm truncate group-hover:text-[#C45EFF] transition-colors">{item.title}</h4>
+                      <p className="text-xs text-gray-500 truncate">{item.desc}</p>
+                    </div>
+                    <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="bg-[#C45EFF] rounded-full p-1.5 shadow-lg">
+                        <Play size={10} fill="black" className="text-black ml-0.5" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
-          </section>
+          </div>
 
-          {/* Section: New Releases */}
-          <section>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1.2 }}
-            >
-              <h2 className="text-2xl font-bold text-white mb-6">New Releases</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {[...featuredPlaylists].reverse().map((item, index) => (
-                  <PlaylistCard key={`new-${item.id}`} item={item} index={index} />
-                ))}
-              </div>
-            </motion.div>
-          </section>
+          {/* --- RIGHT: 3D Swiper --- */}
+          <div className="relative h-[500px] flex items-center justify-center">
+
+            {/* Dynamic Ambient Background */}
+            <div className="absolute inset-0 z-0">
+              <Image
+                key={currentSong.image}
+                src={currentSong.image}
+                alt="Ambient"
+                fill
+                className="object-cover blur-[80px] opacity-30 animate-pulse"
+              />
+            </div>
+
+            <div className="w-full max-w-sm h-full z-10 py-10">
+              <Swiper
+                ref={swiperRef}
+                effect={'coverflow'}
+                grabCursor={true}
+                centeredSlides={true}
+                slidesPerView={'auto'}
+                direction={'vertical'}
+                mousewheel={true}
+                initialSlide={1}
+                coverflowEffect={{
+                  rotate: 0,
+                  stretch: 20,
+                  depth: 150,
+                  modifier: 1,
+                  slideShadows: false,
+                }}
+                onSlideChange={handleSlideChange}
+                modules={[EffectCoverflow, Mousewheel]}
+                className="h-full w-full !overflow-visible"
+              >
+                {MUSIC_LIST.map((item, index) => {
+                  const isActive = index === activeIndex;
+                  return (
+                    <SwiperSlide key={item.id} className="!h-[100px] !w-full flex justify-center items-center transition-all duration-300">
+                      <div
+                        onClick={() => handleSelectSong(index)}
+                        className={`
+                          relative w-full h-[80px] rounded-xl p-2 flex items-center gap-4 transition-all duration-500 cursor-pointer border
+                          ${isActive
+                            ? 'bg-white/10 backdrop-blur-md border-[#C45EFF]/50 shadow-[0_10px_30px_rgba(0,0,0,0.5)] scale-110 z-50'
+                            : 'bg-black/40 border-white/5 opacity-40 scale-95 hover:opacity-70'
+                          }
+                        `}
+                      >
+                        <div className={`relative h-16 w-16 shrink-0 rounded-lg overflow-hidden ${isActive ? 'shadow-lg ring-1 ring-[#C45EFF]' : ''}`}>
+                          <Image src={item.image} alt={item.title} fill className="object-cover" />
+                          {/* Playing Indicator Overlay */}
+                          {isActive && isPlaying && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <div className="flex gap-0.5 items-end h-4 pb-1">
+                                <span className="w-1 bg-[#C45EFF] animate-[bounce_1s_infinite] h-full rounded-full"></span>
+                                <span className="w-1 bg-white animate-[bounce_1.2s_infinite] h-2/3 rounded-full"></span>
+                                <span className="w-1 bg-[#C45EFF] animate-[bounce_0.8s_infinite] h-full rounded-full"></span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h3 className={`font-bold truncate ${isActive ? 'text-white' : 'text-gray-400'}`}>{item.title}</h3>
+                          <p className="text-xs text-[#C45EFF] truncate">{item.composer}</p>
+                        </div>
+                      </div>
+                    </SwiperSlide>
+                  );
+                })}
+              </Swiper>
+            </div>
+          </div>
         </div>
       </main>
 
+      {/* ================= PLAYER BAR (Garis Pemutar) ================= */}
+      <div className="fixed bottom-0 left-0 right-0 h-24 bg-[#0a0a0a]/90 backdrop-blur-xl border-t border-white/10 z-50 px-6 flex items-center justify-between shadow-[0_-5px_30px_rgba(0,0,0,0.8)]">
 
+        {/* Hidden Audio */}
+        <audio
+          ref={audioRef}
+          onTimeUpdate={onTimeUpdate}
+          onEnded={() => setIsPlaying(false)}
+        />
+
+        {/* 1. Song Info */}
+        <div className="flex items-center gap-4 w-[30%]">
+          <div className={`relative h-14 w-14 rounded-full overflow-hidden shadow-lg ${isPlaying ? 'animate-[spin_10s_linear_infinite]' : ''}`}>
+            <Image src={currentSong.image} alt={currentSong.title} fill className="object-cover" />
+          </div>
+          <div className="hidden sm:block">
+            <h4 className="font-bold text-sm text-white hover:underline cursor-pointer">{currentSong.title}</h4>
+            <p className="text-xs text-gray-400">{currentSong.composer}</p>
+          </div>
+          <Heart size={18} className="text-gray-500 hover:text-[#C45EFF] cursor-pointer ml-2 hidden sm:block" />
+        </div>
+
+        {/* 2. Controls & Progress */}
+        <div className="flex flex-col items-center justify-center w-[40%] gap-1">
+          <div className="flex items-center gap-6">
+            <Shuffle size={16} className="text-gray-500 hover:text-white cursor-pointer" />
+            <SkipBack size={20} className="text-gray-300 hover:text-white cursor-pointer hover:scale-110 transition" onClick={() => swiperRef.current?.swiper.slidePrev()} />
+
+            <button
+              onClick={togglePlay}
+              className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:scale-105 transition shadow-lg shadow-white/10"
+            >
+              {isPlaying ? <Pause size={20} fill="black" className="text-black" /> : <Play size={20} fill="black" className="text-black ml-1" />}
+            </button>
+
+            <SkipForward size={20} className="text-gray-300 hover:text-white cursor-pointer hover:scale-110 transition" onClick={() => swiperRef.current?.swiper.slideNext()} />
+            <Repeat size={16} className="text-gray-500 hover:text-white cursor-pointer" />
+          </div>
+
+          <div className="w-full flex items-center gap-3 text-xs text-gray-400 font-mono mt-1">
+            <span>{formatTime(currentTime)}</span>
+            <div className="relative h-1 flex-1 bg-gray-800 rounded-full cursor-pointer group">
+              <div
+                className="absolute top-0 left-0 h-full bg-[#C45EFF] rounded-full group-hover:bg-[#d48aff] transition-colors"
+                style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
+              >
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-md"></div>
+              </div>
+            </div>
+            <span>{formatTime(duration || currentSong.duration || 0)}</span>
+          </div>
+        </div>
+
+        {/* 3. Volume / Extra */}
+        <div className="flex items-center justify-end w-[30%] gap-3">
+          <Volume2 size={18} className="text-gray-400" />
+          <div
+            className="w-24 h-1 bg-gray-800 rounded-full overflow-hidden cursor-pointer"
+            onClick={handleVolumeChange}
+          >
+            <div
+              className="h-full bg-gray-400 rounded-full hover:bg-[#C45EFF] transition-colors"
+              style={{ width: `${volume * 100}%` }}
+            ></div>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
