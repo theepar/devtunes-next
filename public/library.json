@@ -1,8 +1,8 @@
 [
   {
     "id": 1764402716306,
-    "title": "𝙎𝙀𝙉𝙏𝙀 𝙈𝘼𝙄𝙎 - 𝙀𝙩𝙚𝙧𝙣𝙭𝙡𝙠𝙯 (𝙎𝙪𝙥𝙚𝙧 𝙎𝙡𝙤𝙬𝙚𝙙) 𝙭 𝙉𝙚𝙛𝙚𝙧",
-    "composer": "Lunar",
+    "title": "Eternxlkz - SENTE MAIS (Super Slowed & Reverb)",
+    "composer": "Eternxlkz",
     "image": "/images/1764402716306.webp",
     "file": "/music/1764402716306.mp3",
     "duration": 298,
@@ -16,7 +16,9 @@
     "file": "/music/1764403384247.mp3",
     "duration": 240,
     "addedAt": "2025-11-29T08:03:32.727Z",
-    "source": "youtube-search"
+    "source": "youtube-search",
+    "lyrics": "/lyrics/1764403384247.json",
+    "hasLyrics": true
   },
   {
     "id": 1764403724941,
@@ -26,7 +28,9 @@
     "file": "/music/1764403724941.mp3",
     "duration": 292,
     "addedAt": "2025-11-29T08:09:14.100Z",
-    "source": "youtube-search"
+    "source": "youtube-search",
+    "lyrics": "/lyrics/1764403724941.json",
+    "hasLyrics": true
   },
   {
     "id": 1764403786430,

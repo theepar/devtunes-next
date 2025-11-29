@@ -1,6 +1,8 @@
 const YTDlpWrap = require('yt-dlp-wrap').default;
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
+const Genius = require("genius-lyrics");
+const Client = new Genius.Client();
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
@@ -41,15 +43,15 @@ function isYouTubeUrl(input) {
     return input.includes('youtube.com') || input.includes('youtu.be');
 }
 
-// Download lyrics from YouTube subtitles
-async function downloadLyrics(searchQuery, songId, title) {
+// Download lyrics from YouTube subtitles OR Genius
+async function downloadLyrics(searchQuery, songId, title, artist) {
     const ytDlpWrap = new YTDlpWrap();
     const lyricsFile = path.join(lyricsDir, `${songId}.json`);
 
     try {
         console.log('\n📝 Checking for lyrics/subtitles...\n');
 
-        // Try to download subtitles (many music videos have lyrics as CC)
+        // 1. Try to download subtitles (many music videos have lyrics as CC)
         const tempSubPath = path.join(lyricsDir, `${songId}`);
 
         await ytDlpWrap.execPromise([
@@ -75,38 +77,65 @@ async function downloadLyrics(searchQuery, songId, title) {
             const subPath = path.join(lyricsDir, subFile);
             const content = fs.readFileSync(subPath, 'utf-8');
 
-            // Parse VTT to clean lyrics
+            // Parse VTT to extract timestamps and lyrics
             const lines = content.split('\n');
-            const lyrics = [];
-            let currentText = '';
+            const syncedLyrics = [];
+            let currentStart = 0;
+
+            // Helper to convert VTT time string (00:00:00.000) to seconds
+            const parseTime = (timeStr) => {
+                if (!timeStr) return 0;
+                const parts = timeStr.split(':');
+                let seconds = 0;
+                if (parts.length === 3) {
+                    seconds += parseFloat(parts[0]) * 3600;
+                    seconds += parseFloat(parts[1]) * 60;
+                    seconds += parseFloat(parts[2]);
+                } else if (parts.length === 2) {
+                    seconds += parseFloat(parts[0]) * 60;
+                    seconds += parseFloat(parts[1]);
+                }
+                return seconds;
+            };
 
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
 
-                // Skip WEBVTT header and timestamps
-                if (line.startsWith('WEBVTT') || line.includes('-->') || line === '') continue;
+                // Skip header
+                if (line.startsWith('WEBVTT') || line === '') continue;
 
-                // Clean text (remove tags, duplicates)
+                // Check for timestamp line (e.g., 00:00:01.500 --> 00:00:04.000)
+                if (line.includes('-->')) {
+                    const times = line.split('-->');
+                    currentStart = parseTime(times[0].trim());
+                    continue;
+                }
+
+                // If it's text and we have a timestamp
                 const cleanLine = line.replace(/<[^>]*>/g, '').trim();
-                if (cleanLine && cleanLine !== currentText) {
-                    lyrics.push(cleanLine);
-                    currentText = cleanLine;
+                // Avoid duplicates or empty lines
+                if (cleanLine && (syncedLyrics.length === 0 || syncedLyrics[syncedLyrics.length - 1].text !== cleanLine)) {
+                    syncedLyrics.push({
+                        start: currentStart,
+                        text: cleanLine
+                    });
                 }
             }
 
-            if (lyrics.length > 0) {
-                // Save as JSON
+            if (syncedLyrics.length > 0) {
+                // Save as JSON with synced data
                 const lyricsData = {
                     songId,
                     title,
-                    lyrics: lyrics.join('\n'),
-                    lyricsArray: lyrics,
+                    lyrics: syncedLyrics.map(l => l.text).join('\n'), // Plain text for fallback
+                    lyricsArray: syncedLyrics.map(l => l.text), // Array for fallback
+                    syncedLyrics: syncedLyrics, // NEW: Array with timestamps { start, text }
                     source: 'youtube-subtitles',
                     downloadedAt: new Date().toISOString()
                 };
 
                 fs.writeFileSync(lyricsFile, JSON.stringify(lyricsData, null, 2));
-                console.log(`✅ Lyrics saved! (${lyrics.length} lines)\n`);
+                console.log(`✅ Synced Lyrics saved from YouTube CC! (${syncedLyrics.length} lines)\n`);
 
                 // Clean up VTT file
                 fs.unlinkSync(subPath);
@@ -114,11 +143,47 @@ async function downloadLyrics(searchQuery, songId, title) {
             }
         }
 
-        console.log('ℹ️  No lyrics/subtitles available\n');
+        // 2. Fallback: Use Genius Lyrics
+        console.log('ℹ️  No YouTube subtitles found. Searching Genius...');
+
+        // Clean title for better search
+        const cleanTitle = title.replace(/(\(.*?\)|\{.*?\}|\[.*?\]|Official|Video|Lyrics|Audio|ft\.|feat\.|x |with )/gi, '').trim();
+        const cleanArtist = artist ? artist.replace(/ - Topic|VEVO/g, '').trim() : '';
+
+        const query = `${cleanArtist} ${cleanTitle}`;
+        console.log(`🔍 Searching Genius for: "${query}"...`);
+
+        const searches = await Client.songs.search(query);
+
+        if (searches && searches.length > 0) {
+            const firstSong = searches[0];
+            console.log(`✨ Found on Genius: "${firstSong.title}" by ${firstSong.artist.name}`);
+
+            const lyricsText = await firstSong.lyrics();
+
+            if (lyricsText) {
+                const lyricsArray = lyricsText.split('\n').map(l => l.trim()).filter(l => l);
+
+                const lyricsData = {
+                    songId,
+                    title,
+                    lyrics: lyricsText,
+                    lyricsArray: lyricsArray,
+                    source: 'genius-lyrics',
+                    downloadedAt: new Date().toISOString()
+                };
+
+                fs.writeFileSync(lyricsFile, JSON.stringify(lyricsData, null, 2));
+                console.log(`✅ Lyrics saved from Genius! (${lyricsArray.length} lines)\n`);
+                return lyricsData;
+            }
+        }
+
+        console.log('ℹ️  No lyrics found on Genius.\n');
         return null;
 
     } catch (error) {
-        console.log('ℹ️  Lyrics not available for this video\n');
+        console.log('ℹ️  Lyrics download failed:', error.message, '\n');
         return null;
     }
 }
@@ -134,7 +199,7 @@ async function downloadFromYouTube(input) {
 
     if (!isUrl) {
         console.log('\n⚠️  Using search query - URL is more accurate!\n');
-        console.log(`� Searching YouTube for: "${input}"\n`);
+        console.log(`🔍 Searching YouTube for: "${input}"\n`);
     } else {
         console.log('\n🎵 Downloading from YouTube...\n');
     }
@@ -236,7 +301,8 @@ async function downloadFromYouTube(input) {
         console.log('📦 Entry:', JSON.stringify(entry, null, 2));
 
         // Download lyrics (optional - won't fail if not available)
-        const lyricsData = await downloadLyrics(searchQuery, songId, info.title);
+        // Pass uploader as artist
+        const lyricsData = await downloadLyrics(searchQuery, songId, info.title, info.uploader);
 
         // Update entry with lyrics if available
         if (lyricsData) {

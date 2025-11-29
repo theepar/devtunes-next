@@ -27,11 +27,22 @@ export default function Header() {
                     <Bell size={22} />
                     <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0D0714]"></span>
                 </button>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 p-[2px] cursor-pointer">
+                <a
+                    href="https://devagundhala.site/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 p-[2px] cursor-pointer group"
+                >
                     <div className="w-full h-full rounded-full bg-[#1A1A1A] overflow-hidden">
-                        <Image src="/images/code.jpg" width={40} height={40} alt="User" className="object-cover w-full h-full opacity-90 hover:opacity-100 transition" />
+                        <Image
+                            src="https://devagundhala.site/img/profile.jpg"
+                            width={40}
+                            height={40}
+                            alt="User"
+                            className="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition"
+                        />
                     </div>
-                </div>
+                </a>
             </div>
         </header>
     );

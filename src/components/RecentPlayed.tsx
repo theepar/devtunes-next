@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import { MoreHorizontal } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface Song {
     id: number | string;
@@ -29,8 +30,11 @@ export default function RecentPlayed({ songs, activeIndex, isPlaying, onSelect }
             <h2 className="text-xl font-bold mb-4">Recently played</h2>
             <div className="space-y-2">
                 {songs.map((song, idx) => (
-                    <div
+                    <motion.div
                         key={idx}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.05, duration: 0.3 }}
                         onClick={() => onSelect(idx)}
                         className={`flex items-center gap-4 p-3 rounded-2xl transition-all cursor-pointer group border border-transparent ${idx === activeIndex ? 'bg-white/10 border-white/5' : 'hover:bg-white/5'}`}
                     >
@@ -57,7 +61,7 @@ export default function RecentPlayed({ songs, activeIndex, isPlaying, onSelect }
                             </div>
                             <MoreHorizontal size={16} className="text-gray-500 hover:text-white" />
                         </div>
-                    </div>
+                    </motion.div>
                 ))}
             </div>
         </div>

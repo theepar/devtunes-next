@@ -1,18 +1,26 @@
 import React from "react";
 import Image from "next/image";
-import { Play, Pause, SkipBack, SkipForward, Star, BarChart3, Shuffle } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Star, BarChart3, Shuffle, Heart, Mic2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface PlayerProps {
     currentSong: {
+        id: number | string;
         title: string;
         composer: string;
         image: string;
     };
     isPlaying: boolean;
+    isLiked: boolean;
+    isShuffle: boolean;
+    showLyrics: boolean;
     currentTime: number;
     duration: number;
     audioRef: React.RefObject<HTMLAudioElement | null>;
     togglePlay: () => void;
+    toggleLike: () => void;
+    toggleShuffle: () => void;
+    toggleLyrics: () => void;
     onTimeUpdate: () => void;
     handleSongEnd: () => void;
     handleSeek: (e: React.MouseEvent<HTMLDivElement>) => void;
@@ -29,10 +37,16 @@ const formatTime = (seconds: number) => {
 export default function Player({
     currentSong,
     isPlaying,
+    isLiked,
+    isShuffle,
+    showLyrics,
     currentTime,
     duration,
     audioRef,
     togglePlay,
+    toggleLike,
+    toggleShuffle,
+    toggleLyrics,
     onTimeUpdate,
     handleSongEnd,
     handleSeek,
@@ -40,7 +54,12 @@ export default function Player({
     onPrev
 }: PlayerProps) {
     return (
-        <div className="fixed bottom-6 left-4 right-4 md:left-8 md:right-8 z-50">
+        <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 100, damping: 20 }}
+            className="fixed bottom-6 left-4 right-4 md:left-8 md:right-8 z-50"
+        >
             <div className="w-full h-[80px] bg-[#100C18]/90 backdrop-blur-3xl border border-white/5 rounded-[24px] px-6 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)] flex items-center relative overflow-hidden group">
 
                 {/* Invisible Audio Element */}
@@ -55,6 +74,9 @@ export default function Player({
                         <h4 className="text-white font-bold text-[14px] truncate leading-tight">{currentSong.title}</h4>
                         <p className="text-gray-400 text-[11px] truncate">{currentSong.composer}</p>
                     </div>
+                    <button onClick={toggleLike} className="ml-2 hover:scale-110 transition">
+                        <Heart size={18} className={isLiked ? "text-red-500 fill-red-500" : "text-gray-500 hover:text-white"} />
+                    </button>
                 </div>
 
                 {/* 2. CENTER: CONTROLS + WAVEFORM (THE STAR SHOW) */}
@@ -116,15 +138,16 @@ export default function Player({
 
                 {/* 3. RIGHT: EXTRAS */}
                 <div className="hidden md:flex items-center gap-5 shrink-0 w-[180px] justify-end">
-                    <div className="flex items-center gap-1.5">
-                        <span className="text-[12px] font-bold text-yellow-400">4</span>
-                        <Star size={14} fill="#FACC15" className="text-yellow-400" />
-                    </div>
+                    <button onClick={toggleLyrics} className="hover:scale-110 transition">
+                        <Mic2 size={18} className={showLyrics ? "text-[#C45EFF]" : "text-gray-400 hover:text-white"} />
+                    </button>
+                    <button onClick={toggleShuffle} className="hover:scale-110 transition">
+                        <Shuffle size={18} className={isShuffle ? "text-[#C45EFF]" : "text-gray-400 hover:text-white"} />
+                    </button>
                     <BarChart3 size={18} className="text-gray-400 hover:text-white cursor-pointer" />
-                    <Shuffle size={18} className="text-[#F472B6] cursor-pointer hover:text-pink-400" />
                 </div>
 
             </div>
-        </div>
+        </motion.div>
     );
 }

@@ -1,62 +1,92 @@
 import React from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { Play, Music } from "lucide-react";
+import { Music, Mic2, Zap, Headphones } from "lucide-react";
+import { motion } from "framer-motion";
 
-interface Playlist {
-    id: number;
-    title: string;
-    count: string;
-    image: string;
-    color: string;
-}
-
-interface PlaylistGridProps {
-    playlists: Playlist[];
-}
-
-export default function PlaylistGrid({ playlists }: PlaylistGridProps) {
+export default function PlaylistGrid() {
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-            {/* Playlist Cards (Col 8) */}
-            <div className="lg:col-span-8">
-                <div className="flex justify-between items-end mb-4">
-                    <h2 className="text-xl font-bold">Playlists</h2>
-                    <Link href="#" className="text-sm text-gray-500 hover:text-white transition">More &gt;</Link>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {playlists.map((pl) => (
-                        <div key={pl.id} className="group relative aspect-square rounded-[2rem] overflow-hidden cursor-pointer">
-                            <Image src={pl.image} alt={pl.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
-                            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
-                            <div className="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-black/80 to-transparent">
-                                <h3 className="font-bold text-lg leading-tight mb-1">{pl.title}</h3>
-                                <p className="text-xs text-gray-400">{pl.count}</p>
-                            </div>
-                            <div className="absolute bottom-4 right-4 w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-                                <Play size={12} fill="white" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+        <div className="mb-12 relative">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="relative w-full rounded-[2.5rem] overflow-hidden bg-gradient-to-r from-[#1A1A1A] to-[#0D0714] border border-white/5 shadow-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 md:gap-16"
+            >
+                {/* Background Effects */}
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-600/10 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
 
-            {/* Upgrade Banner (Col 4) */}
-            <div className="lg:col-span-4 flex flex-col">
-                <div className="h-8 mb-4"></div> {/* Spacer to align with title */}
-                <div className="flex-1 relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6 flex flex-col justify-center items-center text-center shadow-2xl shadow-purple-500/20">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                    <h3 className="text-2xl font-bold mb-2 relative z-10">Upgrade<br />your account</h3>
-                    <p className="text-xs text-white/80 mb-6 relative z-10">Get full access to high quality audio and offline mode.</p>
-                    <button className="bg-white text-black px-6 py-3 rounded-full font-bold text-sm hover:scale-105 transition-transform shadow-lg relative z-10">
-                        Upgrade Now
-                    </button>
-                    {/* Decorative 3D Element simulation */}
-                    <div className="absolute bottom-[-20px] right-[-20px] opacity-20 rotate-12">
-                        <Music size={120} />
+                {/* Text Content */}
+                <div className="flex-1 relative z-10 text-center md:text-left">
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2, duration: 0.6 }}
+                    >
+                        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
+                            Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C45EFF] to-blue-500">DevTunes</span>
+                        </h2>
+                        <p className="text-lg text-gray-400 mb-8 leading-relaxed max-w-xl">
+                            The ultimate music experience designed for focus and flow.
+                            Enjoy high-fidelity audio, perfectly synchronized lyrics, and a distraction-free interface built for developers.
+                        </p>
+                    </motion.div>
+
+                    {/* Feature Pills */}
+                    <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                        {[
+                            { icon: Headphones, label: "Hi-Fi Audio" },
+                            { icon: Mic2, label: "Synced Lyrics" },
+                            { icon: Zap, label: "Zero Ads" },
+                            { icon: Music, label: "Curated for Focus" }
+                        ].map((feature, idx) => (
+                            <motion.div
+                                key={idx}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 + (idx * 0.1) }}
+                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white transition-colors cursor-default"
+                            >
+                                <feature.icon size={16} className="text-[#C45EFF]" />
+                                {feature.label}
+                            </motion.div>
+                        ))}
                     </div>
                 </div>
-            </div>
+
+                {/* Visual Element (Right Side) */}
+                <div className="relative z-10 shrink-0">
+                    <div className="relative w-64 h-64 md:w-80 md:h-80">
+                        {/* Abstract Circle Rings */}
+                        <div className="absolute inset-0 rounded-full border border-white/10 animate-[spin_10s_linear_infinite]" />
+                        <div className="absolute inset-4 rounded-full border border-white/5 animate-[spin_15s_linear_infinite_reverse]" />
+                        <div className="absolute inset-8 rounded-full border border-white/5 animate-[spin_20s_linear_infinite]" />
+
+                        {/* Center Icon */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#C45EFF] to-blue-600 blur-2xl opacity-50 absolute" />
+                            <div className="w-24 h-24 rounded-full bg-[#0D0714] border border-white/10 flex items-center justify-center relative shadow-xl">
+                                <Music size={40} className="text-white" />
+                            </div>
+                        </div>
+
+                        {/* Floating Elements */}
+                        <motion.div
+                            animate={{ y: [0, -10, 0] }}
+                            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                            className="absolute top-10 right-10 p-3 rounded-xl bg-[#1A1A1A]/80 backdrop-blur-md border border-white/10 shadow-lg"
+                        >
+                            <Mic2 size={20} className="text-blue-400" />
+                        </motion.div>
+                        <motion.div
+                            animate={{ y: [0, 10, 0] }}
+                            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                            className="absolute bottom-10 left-10 p-3 rounded-xl bg-[#1A1A1A]/80 backdrop-blur-md border border-white/10 shadow-lg"
+                        >
+                            <Headphones size={20} className="text-purple-400" />
+                        </motion.div>
+                    </div>
+                </div>
+            </motion.div>
         </div>
     );
 }

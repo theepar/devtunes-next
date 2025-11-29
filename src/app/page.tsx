@@ -8,20 +8,15 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import PlaylistGrid from "@/components/PlaylistGrid";
 import RecentPlayed from "@/components/RecentPlayed";
-import FavArtists from "@/components/FavArtists";
+import FavSongs from "@/components/FavSongs";
 import Player from "@/components/Player";
+import LyricsModal from "@/components/LyricsModal";
 
 // --- Mock Data ---
 const PLAYLISTS = [
   { id: 1, title: "Best 80s Songs", count: "173 songs", image: "/images/code.jpg", color: "from-purple-600 to-blue-600" },
   { id: 2, title: "Old School", count: "41 songs", image: "/images/drive.jpg", color: "from-yellow-400 to-orange-500" },
   { id: 3, title: "Hesam's Top", count: "312 songs", image: "/images/gym.jpg", color: "from-pink-500 to-rose-500" },
-];
-
-const FAV_ARTISTS = [
-  { id: 1, name: "Sia", count: "34 songs", image: "/images/lofi.jpg" },
-  { id: 2, name: "The Weeknd", count: "29 songs", image: "/images/drive.jpg" },
-  { id: 3, name: "Lana Del Rey", count: "12 songs", image: "/images/code.jpg" },
 ];
 
 // Default music fallback
@@ -45,6 +40,13 @@ export default function DevTunesApp() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
+  // Liked Songs State
+  const [likedSongIds, setLikedSongIds] = useState<any[]>([]);
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [lyricsLines, setLyricsLines] = useState<string[]>([]);
+  const [syncedLyrics, setSyncedLyrics] = useState<any[] | null>(null);
+
   // Refs
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -57,8 +59,12 @@ export default function DevTunesApp() {
     }
   };
 
+  const toggleShuffle = () => setIsShuffle(!isShuffle);
+  const toggleLyrics = () => setShowLyrics(!showLyrics);
+
   const handleSelectSong = (index: number) => {
     setActiveIndex(index);
+    setIsPlaying(true);
   };
 
   const onTimeUpdate = () => {
@@ -87,6 +93,50 @@ export default function DevTunesApp() {
 
   const currentSong = MUSIC_LIST[activeIndex];
 
+  // Toggle Like Function
+  const toggleLike = () => {
+    setLikedSongIds(prev => {
+      if (prev.includes(currentSong.id)) {
+        return prev.filter(id => id !== currentSong.id);
+      } else {
+        return [...prev, currentSong.id];
+      }
+    });
+  };
+
+  const isLiked = likedSongIds.includes(currentSong.id);
+
+  // Get full song objects for liked songs
+  const likedSongs = MUSIC_LIST.filter(song => likedSongIds.includes(song.id));
+
+  // Fetch Lyrics when song changes
+  useEffect(() => {
+    const fetchLyrics = async () => {
+      setLyricsLines([]); // Reset
+      setSyncedLyrics(null); // Reset
+
+      const song = currentSong as any;
+      if (song.lyrics) {
+        try {
+          const res = await fetch(song.lyrics);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.lyricsArray) {
+              setLyricsLines(data.lyricsArray);
+            }
+            if (data.syncedLyrics) {
+              setSyncedLyrics(data.syncedLyrics);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load lyrics:", err);
+        }
+      }
+    };
+
+    fetchLyrics();
+  }, [currentSong]);
+
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.src = currentSong.file;
@@ -96,15 +146,34 @@ export default function DevTunesApp() {
   }, [activeIndex]);
 
   const handleSongEnd = () => {
-    setActiveIndex((prev) => (prev + 1) % MUSIC_LIST.length);
+    if (isShuffle) {
+      const randomIndex = Math.floor(Math.random() * MUSIC_LIST.length);
+      setActiveIndex(randomIndex);
+    } else {
+      setActiveIndex((prev) => (prev + 1) % MUSIC_LIST.length);
+    }
   };
 
   const handleNext = () => {
-    setActiveIndex((prev) => (prev + 1) % MUSIC_LIST.length);
+    if (isShuffle) {
+      const randomIndex = Math.floor(Math.random() * MUSIC_LIST.length);
+      setActiveIndex(randomIndex);
+    } else {
+      setActiveIndex((prev) => (prev + 1) % MUSIC_LIST.length);
+    }
   };
 
   const handlePrev = () => {
     setActiveIndex((prev) => (prev - 1 + MUSIC_LIST.length) % MUSIC_LIST.length);
+  };
+
+  // Handle selecting a liked song
+  const handleSelectLikedSong = (song: any) => {
+    const index = MUSIC_LIST.findIndex(s => s.id === song.id);
+    if (index !== -1) {
+      setActiveIndex(index);
+      setIsPlaying(true);
+    }
   };
 
   return (
@@ -130,9 +199,9 @@ export default function DevTunesApp() {
         <div className="flex-1 overflow-y-auto px-4 md:px-12 pb-32 scrollbar-hide">
 
           {/* 1. PLAYLISTS & BANNER GRID */}
-          <PlaylistGrid playlists={PLAYLISTS} />
+          <PlaylistGrid />
 
-          {/* 2. RECENTLY PLAYED & ARTISTS */}
+          {/* 2. RECENTLY PLAYED & LIKED SONGS */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
             {/* Recently Played List (Col 8) */}
@@ -143,22 +212,41 @@ export default function DevTunesApp() {
               onSelect={handleSelectSong}
             />
 
-            {/* Fav Artists (Col 4) */}
-            <FavArtists artists={FAV_ARTISTS} />
+            {/* Liked Songs (Col 4) */}
+            <FavSongs
+              songs={likedSongs}
+              onSelect={handleSelectLikedSong}
+            />
           </div>
 
         </div>
 
       </main>
 
+      {/* ================= LYRICS MODAL ================= */}
+      <LyricsModal
+        isOpen={showLyrics}
+        onClose={() => setShowLyrics(false)}
+        currentSong={currentSong}
+        lyrics={lyricsLines}
+        syncedLyrics={syncedLyrics}
+        currentTime={currentTime}
+      />
+
       {/* ================= PLAYER ================= */}
       <Player
         currentSong={currentSong}
         isPlaying={isPlaying}
+        isLiked={isLiked}
+        isShuffle={isShuffle}
+        showLyrics={showLyrics}
         currentTime={currentTime}
         duration={duration}
         audioRef={audioRef}
         togglePlay={togglePlay}
+        toggleLike={toggleLike}
+        toggleShuffle={toggleShuffle}
+        toggleLyrics={toggleLyrics}
         onTimeUpdate={onTimeUpdate}
         handleSongEnd={handleSongEnd}
         handleSeek={handleSeek}
