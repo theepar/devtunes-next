@@ -8,7 +8,7 @@ export default function Sidebar() {
         { icon: Home, href: "/" },
         { icon: Music, href: "/" },
         { icon: User, href: "/about" },
-        { icon: Settings, href: "#" }
+        { icon: Settings, href: "/settings" }
     ];
 
     return (

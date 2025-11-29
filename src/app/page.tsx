@@ -11,6 +11,7 @@ import RecentPlayed from "@/components/RecentPlayed";
 import FavSongs from "@/components/FavSongs";
 import Player from "@/components/Player";
 import LyricsModal from "@/components/LyricsModal";
+import { useSettings } from "@/context/SettingsContext";
 
 const MUSIC_LIST = libraryData.length > 0 ? libraryData.slice(0, 8) : [];
 
@@ -20,6 +21,9 @@ export default function DevTunesApp() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  // Settings
+  const { performanceMode, crossfade } = useSettings();
 
   // Liked Songs State
   const [likedSongIds, setLikedSongIds] = useState<any[]>([]);
@@ -34,18 +38,66 @@ export default function DevTunesApp() {
   // --- LOGIC ---
   const togglePlay = () => {
     if (audioRef.current) {
-      if (isPlaying) audioRef.current.pause();
-      else audioRef.current.play();
-      setIsPlaying(!isPlaying);
+      if (isPlaying) {
+        // Fade out if crossfade is enabled
+        if (crossfade > 0) {
+          const fadeOut = setInterval(() => {
+            if (audioRef.current && audioRef.current.volume > 0.1) {
+              audioRef.current.volume -= 0.1;
+            } else {
+              clearInterval(fadeOut);
+              if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.volume = 1; // Reset for next play
+              }
+              setIsPlaying(false);
+            }
+          }, 50);
+        } else {
+          audioRef.current.pause();
+          setIsPlaying(!isPlaying);
+        }
+      } else {
+        audioRef.current.play();
+        setIsPlaying(!isPlaying);
+      }
     }
   };
 
   const toggleShuffle = () => setIsShuffle(!isShuffle);
   const toggleLyrics = () => setShowLyrics(!showLyrics);
 
+  // Helper to handle song change with crossfade
+  const changeSong = (newIndex: number) => {
+    if (crossfade > 0 && isPlaying && audioRef.current) {
+      // Fade Out
+      const fadeDuration = (crossfade * 1000) / 2; // Half time for out, half for in
+      const stepTime = 50;
+      const steps = fadeDuration / stepTime;
+      const volStep = 1 / steps;
+
+      let currentVol = 1;
+      const fadeOutInterval = setInterval(() => {
+        currentVol -= volStep;
+        if (audioRef.current) {
+          audioRef.current.volume = Math.max(0, currentVol);
+        }
+
+        if (currentVol <= 0) {
+          clearInterval(fadeOutInterval);
+          setActiveIndex(newIndex);
+          setIsPlaying(true);
+          // Volume will be faded in by the useEffect triggering on activeIndex change
+        }
+      }, stepTime);
+    } else {
+      setActiveIndex(newIndex);
+      setIsPlaying(true);
+    }
+  };
+
   const handleSelectSong = (index: number) => {
-    setActiveIndex(index);
-    setIsPlaying(true);
+    changeSong(index);
   };
 
   const onTimeUpdate = () => {
@@ -118,34 +170,62 @@ export default function DevTunesApp() {
     fetchLyrics();
   }, [currentSong]);
 
+  // Handle Song Change & Fade In
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.src = currentSong.file;
       audioRef.current.load();
-      if (isPlaying) audioRef.current.play().catch(e => console.error("Play error:", e));
+
+      if (isPlaying) {
+        if (crossfade > 0) {
+          audioRef.current.volume = 0;
+          audioRef.current.play().catch(e => console.error("Play error:", e));
+
+          // Fade In
+          const fadeDuration = (crossfade * 1000) / 2;
+          const stepTime = 50;
+          const steps = fadeDuration / stepTime;
+          const volStep = 1 / steps;
+
+          let currentVol = 0;
+          const fadeInInterval = setInterval(() => {
+            currentVol += volStep;
+            if (audioRef.current) {
+              audioRef.current.volume = Math.min(1, currentVol);
+            }
+
+            if (currentVol >= 1) {
+              clearInterval(fadeInInterval);
+            }
+          }, stepTime);
+        } else {
+          audioRef.current.volume = 1;
+          audioRef.current.play().catch(e => console.error("Play error:", e));
+        }
+      }
     }
   }, [activeIndex]);
 
   const handleSongEnd = () => {
     if (isShuffle) {
       const randomIndex = Math.floor(Math.random() * MUSIC_LIST.length);
-      setActiveIndex(randomIndex);
+      changeSong(randomIndex);
     } else {
-      setActiveIndex((prev) => (prev + 1) % MUSIC_LIST.length);
+      changeSong((activeIndex + 1) % MUSIC_LIST.length);
     }
   };
 
   const handleNext = () => {
     if (isShuffle) {
       const randomIndex = Math.floor(Math.random() * MUSIC_LIST.length);
-      setActiveIndex(randomIndex);
+      changeSong(randomIndex);
     } else {
-      setActiveIndex((prev) => (prev + 1) % MUSIC_LIST.length);
+      changeSong((activeIndex + 1) % MUSIC_LIST.length);
     }
   };
 
   const handlePrev = () => {
-    setActiveIndex((prev) => (prev - 1 + MUSIC_LIST.length) % MUSIC_LIST.length);
+    changeSong((activeIndex - 1 + MUSIC_LIST.length) % MUSIC_LIST.length);
   };
 
   // Handle Unlike from FavSongs
@@ -157,20 +237,21 @@ export default function DevTunesApp() {
   const handleSelectLikedSong = (song: any) => {
     const index = MUSIC_LIST.findIndex(s => s.id === song.id);
     if (index !== -1) {
-      setActiveIndex(index);
-      setIsPlaying(true);
+      changeSong(index);
     }
   };
 
   return (
     <div className="flex h-screen bg-[#0D0714] text-white font-sans selection:bg-[#C45EFF] selection:text-white overflow-hidden relative">
 
-      {/* --- BACKGROUND BLOBS --- */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-900/40 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-900/30 rounded-full blur-[120px]" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }}></div>
-      </div>
+      {/* --- BACKGROUND BLOBS (Conditional) --- */}
+      {!performanceMode && (
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-900/40 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-900/30 rounded-full blur-[120px]" />
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }}></div>
+        </div>
+      )}
 
       {/* ================= SIDEBAR (Left) ================= */}
       <Sidebar />
@@ -196,8 +277,7 @@ export default function DevTunesApp() {
               activeIndex={activeIndex}
               isPlaying={isPlaying}
               onSelect={(index) => {
-                setActiveIndex(index);
-                setIsPlaying(true);
+                changeSong(index);
               }}
             />
 

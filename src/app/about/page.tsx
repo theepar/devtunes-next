@@ -4,8 +4,11 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Code2, Heart, Zap, ArrowLeft, Github } from "lucide-react";
 import Link from "next/link";
+import { useSettings } from "@/context/SettingsContext";
 
 export default function AboutPage() {
+    const { performanceMode } = useSettings();
+
     const containerVariants = {
         hidden: { opacity: 0 },
         show: {
@@ -24,12 +27,14 @@ export default function AboutPage() {
     return (
         <div className="min-h-screen bg-[#0D0714] text-white font-sans selection:bg-[#C45EFF] selection:text-white overflow-x-hidden relative">
 
-            {/* --- BACKGROUND BLOBS --- */}
-            <div className="fixed inset-0 z-0 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-900/40 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-900/30 rounded-full blur-[120px]" />
-                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }}></div>
-            </div>
+            {/* --- BACKGROUND BLOBS (Conditional) --- */}
+            {!performanceMode && (
+                <div className="fixed inset-0 z-0 pointer-events-none">
+                    <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-900/40 rounded-full blur-[120px]" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-900/30 rounded-full blur-[120px]" />
+                    <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }}></div>
+                </div>
+            )}
 
             <div className="relative z-10 max-w-6xl mx-auto px-6 py-12">
 
