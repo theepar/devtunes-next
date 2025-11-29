@@ -28,7 +28,6 @@ const SUPPORTED_LANGUAGES = [
 
 export default function LyricsModal({ isOpen, onClose, currentSong, lyrics, syncedLyrics, currentTime }: LyricsModalProps) {
     // Filter lyrics: Skip the first line as requested by user (often contains metadata/title)
-    // If syncedLyrics exists, we assume it's already clean or we handle it separately.
     const filteredLyrics = useMemo(() => {
         if (syncedLyrics && syncedLyrics.length > 0) {
             return syncedLyrics.map(l => l.text);
@@ -79,10 +78,6 @@ export default function LyricsModal({ isOpen, onClose, currentSong, lyrics, sync
         if (!filteredLyrics || filteredLyrics.length === 0) return;
 
         const duration = currentSong.duration || 180;
-
-        // HEURISTIC: Define "Active Vocal Window"
-        // Most songs don't have vocals in the first ~10-15% (Intro) and last ~5-10% (Outro).
-        // We map lyrics ONLY to the time between Intro and Outro.
 
         // Estimate Intro: 10% of song, capped at 18 seconds (Average pop song intro)
         const introDuration = Math.min(duration * 0.1, 18);

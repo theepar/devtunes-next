@@ -31,11 +31,22 @@ export default function DevTunesApp() {
   const [showLyrics, setShowLyrics] = useState(false);
   const [lyricsLines, setLyricsLines] = useState<string[]>([]);
   const [syncedLyrics, setSyncedLyrics] = useState<any[] | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [playlist, setPlaylist] = useState(MUSIC_LIST);
 
   // Refs
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // --- LOGIC ---
+  const filteredSongs = useMemo(() => {
+    if (!searchQuery) return MUSIC_LIST;
+    return libraryData.filter(song =>
+      song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      song.composer.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
+
   const togglePlay = () => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -124,7 +135,7 @@ export default function DevTunesApp() {
     }
   };
 
-  const currentSong = MUSIC_LIST[activeIndex];
+  const currentSong = playlist[activeIndex] || playlist[0] || {};
 
   // Toggle Like Function
   const toggleLike = () => {
@@ -140,7 +151,7 @@ export default function DevTunesApp() {
   const isLiked = likedSongIds.includes(currentSong.id);
 
   // Get full song objects for liked songs
-  const likedSongs = useMemo(() => MUSIC_LIST.filter(song => likedSongIds.includes(song.id)), [likedSongIds]);
+  const likedSongs = useMemo(() => libraryData.filter(song => likedSongIds.includes(song.id)), [likedSongIds]);
 
   // Fetch Lyrics when song changes
   useEffect(() => {
@@ -208,24 +219,24 @@ export default function DevTunesApp() {
 
   const handleSongEnd = () => {
     if (isShuffle) {
-      const randomIndex = Math.floor(Math.random() * MUSIC_LIST.length);
+      const randomIndex = Math.floor(Math.random() * playlist.length);
       changeSong(randomIndex);
     } else {
-      changeSong((activeIndex + 1) % MUSIC_LIST.length);
+      changeSong((activeIndex + 1) % playlist.length);
     }
   };
 
   const handleNext = () => {
     if (isShuffle) {
-      const randomIndex = Math.floor(Math.random() * MUSIC_LIST.length);
+      const randomIndex = Math.floor(Math.random() * playlist.length);
       changeSong(randomIndex);
     } else {
-      changeSong((activeIndex + 1) % MUSIC_LIST.length);
+      changeSong((activeIndex + 1) % playlist.length);
     }
   };
 
   const handlePrev = () => {
-    changeSong((activeIndex - 1 + MUSIC_LIST.length) % MUSIC_LIST.length);
+    changeSong((activeIndex - 1 + playlist.length) % playlist.length);
   };
 
   // Handle Unlike from FavSongs
@@ -235,7 +246,8 @@ export default function DevTunesApp() {
 
   // Handle selecting a liked song
   const handleSelectLikedSong = (song: any) => {
-    const index = MUSIC_LIST.findIndex(s => s.id === song.id);
+    setPlaylist(likedSongs);
+    const index = likedSongs.findIndex(s => s.id === song.id);
     if (index !== -1) {
       changeSong(index);
     }
@@ -254,13 +266,25 @@ export default function DevTunesApp() {
       )}
 
       {/* ================= SIDEBAR (Left) ================= */}
-      <Sidebar />
+      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
       {/* ================= MAIN CONTENT (Right) ================= */}
       <main className="flex-1 flex flex-col relative z-10 overflow-hidden">
 
         {/* --- HEADER --- */}
-        <Header />
+        <Header
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          searchResults={filteredSongs}
+          onPlay={(song) => {
+            // Play the selected song from search
+            // We can either set the playlist to just this song, or find it in the library
+            setPlaylist([song]); // Or maybe context surrounding it? For now just the song or all filtered
+            changeSong(0);
+            setSearchQuery(""); // Close search
+          }}
+        />
 
         {/* --- DASHBOARD SCROLL AREA --- */}
         <div className="flex-1 overflow-y-auto px-4 md:px-12 pb-32 scrollbar-hide">
@@ -274,9 +298,10 @@ export default function DevTunesApp() {
             {/* Recently Played List (Col 8) */}
             <RecentPlayed
               songs={MUSIC_LIST}
-              activeIndex={activeIndex}
+              activeIndex={playlist === MUSIC_LIST ? activeIndex : -1}
               isPlaying={isPlaying}
               onSelect={(index) => {
+                setPlaylist(MUSIC_LIST);
                 changeSong(index);
               }}
             />

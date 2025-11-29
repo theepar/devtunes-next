@@ -43,7 +43,7 @@ export default function FavSongs({ songs, onSelect, onUnlike }: FavSongsProps) {
                 Liked Songs <Heart size={18} className="text-red-500 fill-red-500" />
             </h2>
 
-            <div className="flex-1 bg-white/5 rounded-[2rem] p-4 overflow-hidden flex flex-col border border-white/5 shadow-xl backdrop-blur-sm relative">
+            <div className="flex-1 bg-white/5 rounded-[2rem] p-4 overflow-hidden flex flex-col border border-white/5 shadow-xl backdrop-blur-sm relative h-[280px] md:h-[380px] lg:h-auto lg:min-h-[400px]">
                 <AnimatePresence>
                     {songs.length === 0 && (
                         <motion.div

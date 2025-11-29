@@ -1,10 +1,24 @@
 import React from "react";
 import Image from "next/image";
-import { Search, Bell, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Bell, ChevronLeft, ChevronRight, Menu } from "lucide-react";
 
-export default function Header() {
+interface HeaderProps {
+    onMenuClick?: () => void;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
+}
+
+export default function Header({ onMenuClick, searchQuery, setSearchQuery }: HeaderProps) {
     return (
-        <header className="h-20 flex items-center justify-between px-8 md:px-12 py-6">
+        <header className="h-20 flex items-center justify-between px-4 md:px-12 py-6 gap-4">
+            {/* Mobile Menu Button */}
+            <button
+                onClick={onMenuClick}
+                className="md:hidden p-2 text-gray-400 hover:text-white"
+            >
+                <Menu size={24} />
+            </button>
+
             {/* Nav Arrows */}
             <div className="hidden md:flex gap-4">
                 <button className="text-gray-400 hover:text-white transition"><ChevronLeft size={24} /></button>
@@ -16,6 +30,8 @@ export default function Header() {
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#C45EFF] transition-colors" />
                 <input
                     type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search for artists, songs and..."
                     className="w-full bg-[#1A1A1A] border border-white/5 rounded-full py-3 pl-12 pr-4 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-[#C45EFF]/50 focus:ring-1 focus:ring-[#C45EFF]/50 transition-all shadow-inner"
                 />

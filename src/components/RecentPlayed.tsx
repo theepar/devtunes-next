@@ -16,6 +16,7 @@ interface RecentPlayedProps {
     activeIndex: number;
     isPlaying: boolean;
     onSelect: (index: number) => void;
+    title?: string;
 }
 
 const formatTime = (seconds: number) => {
@@ -24,10 +25,10 @@ const formatTime = (seconds: number) => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
-export default function RecentPlayed({ songs, activeIndex, isPlaying, onSelect }: RecentPlayedProps) {
+export default function RecentPlayed({ songs, activeIndex, isPlaying, onSelect, title = "Recently played" }: RecentPlayedProps) {
     return (
         <div className="lg:col-span-8">
-            <h2 className="text-xl font-bold mb-4">Recently played</h2>
+            <h2 className="text-xl font-bold mb-4">{title}</h2>
             <div className="space-y-2">
                 {songs.map((song, idx) => (
                     <motion.div
