@@ -44,9 +44,13 @@ function isYouTubeUrl(input) {
 }
 
 // Download lyrics from YouTube subtitles OR Genius
-async function downloadLyrics(searchQuery, songId, title, artist) {
+async function downloadLyrics(input, songId, title, artist) {
     const ytDlpWrap = new YTDlpWrap();
     const lyricsFile = path.join(lyricsDir, `${songId}.json`);
+
+    // Determine if URL or search query
+    const isUrl = isYouTubeUrl(input);
+    const searchQuery = isUrl ? input : `ytsearch:${input}`;
 
     try {
         console.log('\n📝 Checking for lyrics/subtitles...\n');
@@ -386,4 +390,10 @@ async function main() {
     }
 }
 
-main();
+// Export for reuse
+module.exports = { downloadLyrics };
+
+// Only run if called directly
+if (require.main === module) {
+    main();
+}

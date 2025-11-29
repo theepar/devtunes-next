@@ -144,7 +144,6 @@ export default function Player({
                     <button onClick={toggleShuffle} className="hover:scale-110 transition">
                         <Shuffle size={18} className={isShuffle ? "text-[#C45EFF]" : "text-gray-400 hover:text-white"} />
                     </button>
-                    <BarChart3 size={18} className="text-gray-400 hover:text-white cursor-pointer" />
                 </div>
 
             </div>

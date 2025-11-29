@@ -1,37 +1,18 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import libraryData from '@/../public/library.json';
 
 // Components
 import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
-import PlaylistGrid from "@/components/PlaylistGrid";
+import Header from "@/components/Headbar";
+import PlaylistGrid from "@/components/Header";
 import RecentPlayed from "@/components/RecentPlayed";
 import FavSongs from "@/components/FavSongs";
 import Player from "@/components/Player";
 import LyricsModal from "@/components/LyricsModal";
 
-// --- Mock Data ---
-const PLAYLISTS = [
-  { id: 1, title: "Best 80s Songs", count: "173 songs", image: "/images/code.jpg", color: "from-purple-600 to-blue-600" },
-  { id: 2, title: "Old School", count: "41 songs", image: "/images/drive.jpg", color: "from-yellow-400 to-orange-500" },
-  { id: 3, title: "Hesam's Top", count: "312 songs", image: "/images/gym.jpg", color: "from-pink-500 to-rose-500" },
-];
-
-// Default music fallback
-const DEFAULT_MUSIC = [
-  {
-    id: 1,
-    title: "Dark Paradise",
-    composer: "Lana Del Rey",
-    image: "/images/code.jpg",
-    file: "/music/Nightcore - Beautiful Creatures.mp3",
-    duration: 243
-  }
-];
-
-const MUSIC_LIST = libraryData.length > 0 ? libraryData.slice(0, 8) : DEFAULT_MUSIC;
+const MUSIC_LIST = libraryData.length > 0 ? libraryData.slice(0, 8) : [];
 
 export default function DevTunesApp() {
   // --- STATE ---
@@ -107,7 +88,7 @@ export default function DevTunesApp() {
   const isLiked = likedSongIds.includes(currentSong.id);
 
   // Get full song objects for liked songs
-  const likedSongs = MUSIC_LIST.filter(song => likedSongIds.includes(song.id));
+  const likedSongs = useMemo(() => MUSIC_LIST.filter(song => likedSongIds.includes(song.id)), [likedSongIds]);
 
   // Fetch Lyrics when song changes
   useEffect(() => {
@@ -167,6 +148,11 @@ export default function DevTunesApp() {
     setActiveIndex((prev) => (prev - 1 + MUSIC_LIST.length) % MUSIC_LIST.length);
   };
 
+  // Handle Unlike from FavSongs
+  const handleUnlike = (id: number | string) => {
+    setLikedSongIds(prev => prev.filter(songId => songId !== Number(id)));
+  };
+
   // Handle selecting a liked song
   const handleSelectLikedSong = (song: any) => {
     const index = MUSIC_LIST.findIndex(s => s.id === song.id);
@@ -209,13 +195,17 @@ export default function DevTunesApp() {
               songs={MUSIC_LIST}
               activeIndex={activeIndex}
               isPlaying={isPlaying}
-              onSelect={handleSelectSong}
+              onSelect={(index) => {
+                setActiveIndex(index);
+                setIsPlaying(true);
+              }}
             />
 
             {/* Liked Songs (Col 4) */}
             <FavSongs
               songs={likedSongs}
               onSelect={handleSelectLikedSong}
+              onUnlike={handleUnlike}
             />
           </div>
 
