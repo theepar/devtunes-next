@@ -34,6 +34,7 @@ export default function DevTunesApp() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [playlist, setPlaylist] = useState(MUSIC_LIST);
+  const [recentSongs, setRecentSongs] = useState(MUSIC_LIST);
 
   // Refs
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -181,6 +182,23 @@ export default function DevTunesApp() {
     fetchLyrics();
   }, [currentSong]);
 
+  // Update Recent Songs when currentSong changes
+  useEffect(() => {
+    if (currentSong?.id) {
+      setRecentSongs(prev => {
+        // If it's already the first one, do nothing
+        if (prev.length > 0 && prev[0].id === currentSong.id) return prev;
+
+        // Remove current song if exists, then add to front
+        // We cast currentSong to any to avoid type issues if the types slightly mismatch, 
+        // though they should be compatible.
+        const songToAdd = currentSong as any;
+        const filtered = prev.filter(s => s.id !== songToAdd.id);
+        return [songToAdd, ...filtered].slice(0, 8);
+      });
+    }
+  }, [currentSong]);
+
   // Handle Song Change & Fade In
   useEffect(() => {
     if (audioRef.current) {
@@ -215,7 +233,7 @@ export default function DevTunesApp() {
         }
       }
     }
-  }, [activeIndex]);
+  }, [currentSong, activeIndex, isPlaying, crossfade]);
 
   const handleSongEnd = () => {
     if (isShuffle) {
@@ -279,10 +297,26 @@ export default function DevTunesApp() {
           searchResults={filteredSongs}
           onPlay={(song) => {
             // Play the selected song from search
-            // We can either set the playlist to just this song, or find it in the library
-            setPlaylist([song]); // Or maybe context surrounding it? For now just the song or all filtered
-            changeSong(0);
+            setPlaylist([song]);
+            // Force play index 0 of the new playlist
+            // We use setTimeout to ensure state update has propagated or just rely on changeSong logic
+            // But changeSong relies on 'playlist' state.
+            // Since setPlaylist is async, we might need a better way.
+            // However, for now, let's try setting activeIndex directly and playing.
+
+            // Actually, if we set playlist to [song], activeIndex 0 is correct.
+            // But we need to trigger the play effect.
+            // Let's manually trigger it.
+            setActiveIndex(0);
+            setIsPlaying(true);
             setSearchQuery(""); // Close search
+
+            // Also update recent songs immediately
+            setRecentSongs(prev => {
+              const songToAdd = song as any;
+              const filtered = prev.filter(s => s.id !== songToAdd.id);
+              return [songToAdd, ...filtered].slice(0, 8);
+            });
           }}
         />
 
@@ -297,11 +331,13 @@ export default function DevTunesApp() {
 
             {/* Recently Played List (Col 8) */}
             <RecentPlayed
-              songs={MUSIC_LIST}
-              activeIndex={playlist === MUSIC_LIST ? activeIndex : -1}
+              songs={recentSongs}
+              activeIndex={recentSongs.findIndex(s => s.id === currentSong?.id)}
               isPlaying={isPlaying}
               onSelect={(index) => {
-                setPlaylist(MUSIC_LIST);
+                // When selecting from Recent Played, we want to play that specific song.
+                // We can set the playlist to recentSongs so Next/Prev works within this list.
+                setPlaylist(recentSongs);
                 changeSong(index);
               }}
             />
